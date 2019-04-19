@@ -10,6 +10,7 @@
  * 2018-12-30: Compartmentalized into 4 functions.
  * 2019-01-26: Changed timer module to get rid of 32kHz crystal.
  * 2019-02-23: Switched pinouts to make PCB routing easier.
+ * 2019-04-19: Added pre-watering stage.
  */
 
 
@@ -41,7 +42,6 @@ void disableWatchdog(void)
 /*
  * Initialize the clock, crystal, and ports.
  */
-
 void initialize(void)
 {
     __disable_interrupt();                      // Disable global interrupts
@@ -154,7 +154,7 @@ void preWaterPlant(struct plantProperty* ptr_plant)
     int counter = 0;
     P2OUT |= (*ptr_plant).activateSolenoid;
     delay(1);
-    while(moisture<MOISTURE_MAX || counter<MAX_TRAVEL)
+    while(moisture<MOISTURE_MAX && counter<MAX_TRAVEL)
     {
         P2OUT |= BIT3;
         delay(1);
@@ -163,6 +163,9 @@ void preWaterPlant(struct plantProperty* ptr_plant)
     }
     if(counter>=MAX_TRAVEL)
     {
+        P2OUT &= ~BIT3;
+        delay(2);
+        P2OUT &= ~(*ptr_plant).activateSolenoid;
         while(1)
         {
             P1OUT |= (BIT0 + BIT2 + BIT4);
@@ -202,15 +205,16 @@ void plantState(struct plantProperty* ptr_plant)
     if(moisture<MOISTURE_MIN)
     {
         preWaterPlant(ptr_plant);
+        deinitializeADC(ptr_plant);
         delay(60);
+        initializeADC(ptr_plant);
         waterPlant(ptr_plant);
     }
-    waterPlant(ptr_plant);
     deinitializeADC(ptr_plant);
 }
 
 void main(void)
-{
+ {
     disableWatchdog();
 
     initialize();

@@ -120,34 +120,34 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-AutoPlantWateringSystem2.out \
+AutoPlantWateringSystem.out \
 
 EXE_OUTPUTS__QUOTED += \
-"AutoPlantWateringSystem2.out" \
+"AutoPlantWateringSystem.out" \
 
 BIN_OUTPUTS += \
-AutoPlantWateringSystem2.hex \
+AutoPlantWateringSystem.hex \
 
 BIN_OUTPUTS__QUOTED += \
-"AutoPlantWateringSystem2.hex" \
+"AutoPlantWateringSystem.hex" \
 
 
 # All Target
 all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
-	@$(MAKE) --no-print-directory -Onone "AutoPlantWateringSystem2.out"
+	@$(MAKE) --no-print-directory -Onone "AutoPlantWateringSystem.out"
 
 # Tool invocations
-AutoPlantWateringSystem2.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+AutoPlantWateringSystem.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: MSP430 Linker'
-	"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-msp430_18.12.1.LTS/bin/cl430" -vmsp --use_hw_mpy=none --advice:power=all --define=__MSP430G2553__ -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number -z -m"AutoPlantWateringSystem2.map" --heap_size=80 --stack_size=80 -i"C:/ti/ccs900/ccs/ccs_base/msp430/include" -i"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-msp430_18.12.1.LTS/lib" -i"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-msp430_18.12.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="AutoPlantWateringSystem2_linkInfo.xml" --use_hw_mpy=none --rom_model -o "AutoPlantWateringSystem2.out" $(ORDERED_OBJS)
+	"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-msp430_18.12.1.LTS/bin/cl430" -vmsp --use_hw_mpy=none --advice:power=all --define=__MSP430G2553__ -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number -z -m"AutoPlantWateringSystem.map" --heap_size=80 --stack_size=80 -i"C:/ti/ccs900/ccs/ccs_base/msp430/include" -i"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-msp430_18.12.1.LTS/lib" -i"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-msp430_18.12.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="AutoPlantWateringSystem_linkInfo.xml" --use_hw_mpy=none --rom_model -o "AutoPlantWateringSystem.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
-AutoPlantWateringSystem2.hex: $(EXE_OUTPUTS)
+AutoPlantWateringSystem.hex: $(EXE_OUTPUTS)
 	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo 'Invoking: MSP430 Hex Utility'
-	"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-msp430_18.12.1.LTS/bin/hex430" --memwidth=8 --romwidth=8 -o "AutoPlantWateringSystem2.hex" $(EXE_OUTPUTS__QUOTED)
+	"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-msp430_18.12.1.LTS/bin/hex430" --memwidth=8 --romwidth=8 -o "AutoPlantWateringSystem.hex" $(EXE_OUTPUTS__QUOTED)
 	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo ' '
 
