@@ -18,6 +18,8 @@
 
 #define MOISTURE_MIN 200
 #define MOISTURE_MAX 600
+#define MAX_TRAVEL 5
+#define SOAK_TIME 3
 
 struct plantProperty
 {
@@ -25,6 +27,7 @@ struct plantProperty
     int selectADC;
     int sampleADC;
     int activateSolenoid;
+    int travelTime;
 };
 
 /*
@@ -38,6 +41,7 @@ void disableWatchdog(void)
 /*
  * Initialize the clock, crystal, and ports.
  */
+
 void initialize(void)
 {
     __disable_interrupt();                      // Disable global interrupts
@@ -142,25 +146,50 @@ int checkMoisture()
 }
 
 /*
- * Runs moisture level check and waters plant if needed.
+ * Pre-waters the plant and verifies configuration.
+ */
+void preWaterPlant(struct plantProperty* ptr_plant)
+{
+    int moisture = checkMoisture();
+    int counter = 0;
+    P2OUT |= (*ptr_plant).activateSolenoid;
+    delay(1);
+    while(moisture<MOISTURE_MAX || counter<MAX_TRAVEL)
+    {
+        P2OUT |= BIT3;
+        delay(1);
+        moisture = checkMoisture();
+        counter++;
+    }
+    if(counter>=MAX_TRAVEL)
+    {
+        while(1)
+        {
+            P1OUT |= (BIT0 + BIT2 + BIT4);
+            delay(1);
+            P1OUT &= ~(BIT0 + BIT2 + BIT4);
+            delay(1);
+        }
+    }
+    P2OUT &= ~BIT3;
+    delay(2);
+    P2OUT &= ~(*ptr_plant).activateSolenoid;
+    (*ptr_plant).travelTime = counter;
+}
+
+/*
+ * Deep waters the plant.
  */
 void waterPlant(struct plantProperty* ptr_plant)
 {
-    int moisture = checkMoisture();
-    if(moisture<MOISTURE_MIN)
-    {
-        P2OUT |= (*ptr_plant).activateSolenoid;
-        delay(1);
-        while(moisture<MOISTURE_MAX)
-        {
-            P2OUT |= BIT3;
-            delay(1);
-            moisture = checkMoisture();
-        }
-        P2OUT &= ~BIT3;
-        delay(2);
-        P2OUT &= ~(*ptr_plant).activateSolenoid;
-    }
+    int waterTime = (*ptr_plant).travelTime + SOAK_TIME;
+    P2OUT |= (*ptr_plant).activateSolenoid;
+    delay(1);
+    P2OUT |= BIT3;
+    delay(waterTime);
+    P2OUT &= ~BIT3;
+    delay(2);
+    P2OUT &= ~(*ptr_plant).activateSolenoid;
 }
 
 /*
@@ -169,6 +198,13 @@ void waterPlant(struct plantProperty* ptr_plant)
 void plantState(struct plantProperty* ptr_plant)
 {
     initializeADC(ptr_plant);
+    int moisture = checkMoisture();
+    if(moisture<MOISTURE_MIN)
+    {
+        preWaterPlant(ptr_plant);
+        delay(60);
+        waterPlant(ptr_plant);
+    }
     waterPlant(ptr_plant);
     deinitializeADC(ptr_plant);
 }
@@ -182,19 +218,22 @@ void main(void)
     struct plantProperty plant1 = {.enableADC = BIT0,
                                    .selectADC = INCH_1,
                                    .sampleADC = BIT1,
-                                   .activateSolenoid = BIT0};
+                                   .activateSolenoid = BIT0,
+                                   .travelTime = 0};
     struct plantProperty *ptr_plant1 = &plant1;
 
     struct plantProperty plant2 = {.enableADC = BIT2,
                                    .selectADC = INCH_3,
                                    .sampleADC = BIT3,
-                                   .activateSolenoid = BIT1};
+                                   .activateSolenoid = BIT1,
+                                   .travelTime = 0};
     struct plantProperty *ptr_plant2 = &plant2;
 
     struct plantProperty plant3 = {.enableADC = BIT4,
                                    .selectADC = INCH_5,
                                    .sampleADC = BIT5,
-                                   .activateSolenoid = BIT2};
+                                   .activateSolenoid = BIT2,
+                                   .travelTime = 0};
     struct plantProperty *ptr_plant3 = &plant3;
 
 
