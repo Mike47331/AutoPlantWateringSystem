@@ -8,6 +8,8 @@
  *
  * Changelog
  * 2018-12-30: Compartmentalized into 4 functions.
+ * 2019-01-26: Changed timer module to get rid of 32kHz crystal.
+ * 2019-02-23: Switched pinouts to make PCB routing easier.
  */
 
 
@@ -43,35 +45,49 @@ void initialize(void)
     BCSCTL1 = CALBC1_1MHZ;                      // Set range to calibrated 1MHz
     DCOCTL  = CALDCO_1MHZ;                      // Set DCO step and modulation to calibrated 1MHz
 
-    BCSCTL1 |= DIVA_3;                          // ACLK/8
-    BCSCTL3 |= XCAP_3;                          // 12.5pF cap- setting for 32768Hz crystal
+    BCSCTL2 = DIVM_3 + DIVS_3;                  // Set MCLK and SMCLK to /8
 
-    P1DIR |= 0x07;                              // Set P1.0, P1.1, P1.2 as output
-    P1OUT &= ~(BIT0 + BIT1 + BIT2);             // Set all output pins to low
+    P1DIR |= 0x15;                              // Set P1.0, P1.2, P1.4 as output
+    P1OUT &= ~(BIT0 + BIT2 + BIT4);             // Set all output pins to low
 
     P2DIR |= 0x0F;                              // Set P2.0, P2.1, P2.2, P2.3 as output
     P2OUT &= ~(BIT0 + BIT1 + BIT2 +BIT3);       // Set all output pins to low
 
-    ADC10CTL1 |= ADC10DIV_3;
+    ADC10CTL1 |= ADC10DIV_7;
     ADC10CTL0 = ADC10SHT_1 + ADC10ON + ADC10IE; // Turn on ADC, enable interrupt and sample for 8x ADC10CLKs
 
     __enable_interrupt();                       // Enable global interrupts
 }
 
 /*
+ * Milisecond delay using Timer A.
+ */
+void msdelay(int mseconds)
+{
+    int i;
+    for(i = mseconds; i>0; i--)
+    {
+        TACTL = TASSEL_2 + ID_3 + MC_1;          // SMCLK, /8, upmode
+        CCTL0 = CCIE;
+        CCR0 = 16-1;
+
+        _BIS_SR(LPM1_bits + GIE);
+    }
+}
+
+/*
  * Second delay using TimerA.
- *
- * note: max seconds it can handle is 128.
  */
 void delay(int seconds)
 {
-    if(seconds<120)
+    int i;
+    for(i = seconds; i>0; i--)
     {
-        TACTL = TASSEL_1 + ID_3 + MC_1;          // ACLK, /8, upmode
-        CCTL0 = CCIE;                            // CCR0 interrupt enabled
-        CCR0 = (512* seconds)-1;                 // 512 -> 1 sec, 30720 -> 1 min
+        TACTL = TASSEL_2 + ID_3 + MC_1;          // SMCLK, /8, upmode
+        CCTL0 = CCIE;
+        CCR0 = 15625-1;
 
-        _BIS_SR(LPM3_bits + GIE);                // Enter LPM3 w/ interrupt
+        _BIS_SR(LPM1_bits + GIE);
     }
 }
 
@@ -81,9 +97,9 @@ void delay(int seconds)
 void hdelay(int hours)
 {
     int i;
-    for(i = hours*60; i>0; i--)
+    for(i = hours; i>0; i--)
     {
-        delay(60);
+        delay(3600);
     }
 }
 
@@ -94,9 +110,10 @@ void initializeADC(struct plantProperty* ptr_plant)
 {
     __disable_interrupt();
     P1OUT |= (*ptr_plant).enableADC;
-    ADC10CTL1 = (*ptr_plant).selectADC;
+    ADC10CTL1 |= (*ptr_plant).selectADC;
     ADC10AE0 |= (*ptr_plant).sampleADC;
     __enable_interrupt();
+    msdelay(500);
 }
 
 /*
@@ -106,6 +123,7 @@ void deinitializeADC(struct plantProperty* ptr_plant)
 {
     __disable_interrupt();
     ADC10CTL0 &= ~ENC;
+    ADC10CTL1 &= ~(*ptr_plant).selectADC;
     ADC10AE0 &= ~(*ptr_plant).sampleADC;
     P1OUT &= ~(*ptr_plant).enableADC;
     __enable_interrupt();
@@ -136,6 +154,7 @@ void waterPlant(struct plantProperty* ptr_plant)
         while(moisture<MOISTURE_MAX)
         {
             P2OUT |= BIT3;
+            delay(1);
             moisture = checkMoisture();
         }
         P2OUT &= ~BIT3;
@@ -161,21 +180,21 @@ void main(void)
     initialize();
 
     struct plantProperty plant1 = {.enableADC = BIT0,
-                                         .selectADC = INCH_3,
-                                         .sampleADC = BIT3,
-                                         .activateSolenoid = BIT0};
+                                   .selectADC = INCH_1,
+                                   .sampleADC = BIT1,
+                                   .activateSolenoid = BIT0};
     struct plantProperty *ptr_plant1 = &plant1;
 
-    struct plantProperty plant2 = {.enableADC = BIT1,
-                                         .selectADC = INCH_4,
-                                         .sampleADC = BIT4,
-                                         .activateSolenoid = BIT1};
+    struct plantProperty plant2 = {.enableADC = BIT2,
+                                   .selectADC = INCH_3,
+                                   .sampleADC = BIT3,
+                                   .activateSolenoid = BIT1};
     struct plantProperty *ptr_plant2 = &plant2;
 
-    struct plantProperty plant3 = {.enableADC = BIT2,
-                                         .selectADC = INCH_5,
-                                         .sampleADC = BIT5,
-                                         .activateSolenoid = BIT2};
+    struct plantProperty plant3 = {.enableADC = BIT4,
+                                   .selectADC = INCH_5,
+                                   .sampleADC = BIT5,
+                                   .activateSolenoid = BIT2};
     struct plantProperty *ptr_plant3 = &plant3;
 
 
@@ -184,7 +203,7 @@ void main(void)
         plantState(ptr_plant1);
         plantState(ptr_plant2);
         plantState(ptr_plant3);
-        hdelay(1);
+        hdelay(48);
     }
 }
 
@@ -194,7 +213,7 @@ void main(void)
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void timer_A(void)
 {
-    _BIC_SR_IRQ(LPM3_bits);
+    _BIC_SR_IRQ(LPM1_bits);
 }
 
 /*
