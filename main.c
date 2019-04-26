@@ -246,7 +246,7 @@ void main(void)
         plantState(ptr_plant1);
         plantState(ptr_plant2);
         plantState(ptr_plant3);
-        hdelay(48);
+        hdelay(24);
     }
 }
 
