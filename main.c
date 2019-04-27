@@ -11,6 +11,7 @@
  * 2019-01-26: Changed timer module to get rid of 32kHz crystal.
  * 2019-02-23: Switched pinouts to make PCB routing easier.
  * 2019-04-19: Added pre-watering stage.
+ * 2019-04-27: Added averaging to incoming moisture samples.
  */
 
 
