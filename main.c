@@ -138,11 +138,19 @@ void deinitializeADC(struct plantProperty* ptr_plant)
  */
 int checkMoisture()
 {
-    int moisture = 0;
-    ADC10CTL0 |= ENC + ADC10SC;
-    _BIS_SR(LPM0_bits + GIE);
-    moisture = ADC10MEM;
-    return moisture;
+    int moisture[10] = {0};
+    int avgMoisture = 0;
+    int count = 0;
+    for(count = 0; count < 10; count++)
+    {
+        ADC10CTL0 |= ENC + ADC10SC;
+        _BIS_SR(LPM0_bits + GIE);
+        moisture[count] = ADC10MEM;
+        avgMoisture = avgMoisture + moisture[count];
+        msdelay(10);
+    }
+    avgMoisture = avgMoisture/10;
+    return avgMoisture;
 }
 
 /*
