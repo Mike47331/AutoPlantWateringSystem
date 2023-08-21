@@ -11,6 +11,7 @@
  * 2019-01-26: Changed timer module to get rid of 32kHz crystal.
  * 2019-02-23: Switched pinouts to make PCB routing easier.
  * 2019-04-19: Added pre-watering stage.
+ * 2019-04-27: Added averaging to incoming moisture samples.
  */
 
 
@@ -138,11 +139,20 @@ void deinitializeADC(struct plantProperty* ptr_plant)
  */
 int checkMoisture()
 {
-    int moisture = 0;
-    ADC10CTL0 |= ENC + ADC10SC;
-    _BIS_SR(LPM0_bits + GIE);
-    moisture = ADC10MEM;
-    return moisture;
+    int moisture[10] = {0};
+    int totalMoisture = 0;
+    double avgMoisture = 0;
+    unsigned int count = 0;
+    for(count = 0; count < 10; count++)
+    {
+        ADC10CTL0 |= ENC + ADC10SC;
+        _BIS_SR(LPM0_bits + GIE);
+        moisture[count] = ADC10MEM;
+        totalMoisture = totalMoisture + moisture[count];
+        msdelay(10);
+    }
+    avgMoisture = totalMoisture / 10;
+    return avgMoisture;
 }
 
 /*
